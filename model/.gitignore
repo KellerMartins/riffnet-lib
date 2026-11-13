@@ -1,0 +1,15 @@
+# Virtualenv, training cache, and generated artifacts
+.venv*/
+data/
+logs/
+__pycache__/
+*.pt
+*.onnx
+*.log
+parity_*.bin
+
+# ...except the committed reproducibility weights (source checkpoint + its
+# ONNX export, read by riffnet/build.rs at compile time).
+!weights/
+!weights/*.pt
+!weights/*.onnx

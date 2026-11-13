@@ -1,0 +1,25 @@
+[package]
+name = "riffnet"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[build-dependencies]
+burn-onnx = "0.21.0"
+
+[dependencies]
+riffnet_dsp = { path = "../riffnet_dsp" }
+wasm-bindgen = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde-wasm-bindgen = "0.6"
+web-sys = { version = "0.3", features = ["Performance", "Window"] }
+js-sys = "0.3.103"
+burn = { version = "0.21.0", default-features = false, features = ["std"] }
+burn-flex = "0.21.0"
+burn-store = "0.21.0"
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-O3", "--enable-simd", "--enable-bulk-memory", "--enable-nontrapping-float-to-int", "--enable-sign-ext", "--enable-mutable-globals"]

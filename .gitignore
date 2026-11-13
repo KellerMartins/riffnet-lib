@@ -1,0 +1,9 @@
+target/
+EGDB/
+GOAT/
+IDMTSMTBass/
+SlakhBass/
+.idea/
+.vscode/
+model/parity_*.bin
+model/bass_parity_*.bin

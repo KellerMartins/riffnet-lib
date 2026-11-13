@@ -1,0 +1,31 @@
+/* tslint:disable */
+/* eslint-disable */
+export const memory: WebAssembly.Memory;
+export const __wbg_riffnetdetector_free: (a: number, b: number) => void;
+export const riffnetdetector_cqt_ms: (a: number) => number;
+export const riffnetdetector_instrument: (a: number) => number;
+export const riffnetdetector_max_notes: (a: number) => number;
+export const riffnetdetector_new: (a: number) => number;
+export const riffnetdetector_onset_threshold: (a: number) => number;
+export const riffnetdetector_pitch_threshold: (a: number) => number;
+export const riffnetdetector_poll: (a: number) => number;
+export const riffnetdetector_process_audio: (a: number, b: number, c: number) => void;
+export const riffnetdetector_refractory: (a: number) => number;
+export const riffnetdetector_set_instrument: (a: number, b: number) => void;
+export const riffnetdetector_set_max_notes: (a: number, b: number) => void;
+export const riffnetdetector_set_onset_threshold: (a: number, b: number) => void;
+export const riffnetdetector_set_pitch_threshold: (a: number, b: number) => void;
+export const riffnetdetector_set_refractory: (a: number, b: number) => void;
+export const riffnetdetector_verify_expected: (a: number, b: number, c: number, d: number) => void;
+export const rust_zstd_wasm_shim_calloc: (a: number, b: number) => number;
+export const rust_zstd_wasm_shim_free: (a: number) => void;
+export const rust_zstd_wasm_shim_malloc: (a: number) => number;
+export const rust_zstd_wasm_shim_memcmp: (a: number, b: number, c: number) => number;
+export const rust_zstd_wasm_shim_memcpy: (a: number, b: number, c: number) => number;
+export const rust_zstd_wasm_shim_memmove: (a: number, b: number, c: number) => number;
+export const rust_zstd_wasm_shim_memset: (a: number, b: number, c: number) => number;
+export const rust_zstd_wasm_shim_qsort: (a: number, b: number, c: number, d: number) => void;
+export const __wbindgen_export: (a: number) => void;
+export const __wbindgen_export2: (a: number, b: number) => number;
+export const __wbindgen_add_to_stack_pointer: (a: number) => number;
+export const __wbindgen_export3: (a: number, b: number, c: number) => void;

@@ -1,0 +1,26 @@
+[project]
+name = "riffnet-model"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+license = "AGPL-3.0-or-later"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "mido>=1.3.3",           # EGDB/GOAT midi parsing (build_dataset.py)
+    "numpy>=2.5.0",
+    "onnx>=1.22.0",          # ONNX graph (export.py)
+    "onnxruntime>=1.22.0",   # ORT graph optimization on export (export.py)
+    "pedalboard>=0.9.0",     # pitch-shift augmentation (build_dataset.py's shifted builders)
+    "pretty-midi>=0.2.10",   # GOAT fine-aligned midi parsing (build_dataset.py)
+    "scipy>=1.18.0",         # LPF (cqt.py)
+    "soundfile>=0.14.0",     # wav reading (build_dataset.py)
+    "torch>=2.6",
+]
+
+[[tool.uv.index]]
+name = "pytorch-cuda"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cuda" }

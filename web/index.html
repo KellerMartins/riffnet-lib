@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>RiffNet — Live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0d0d0f;
+  --surface: #18181c;
+  --border: #2a2a32;
+  --accent: #7c5cfc;
+  --accent2: #00d4b4;
+  --text: #e8e8f0;
+  --muted: #6b6b80;
+  --onset: #ff5e5e;
+  --string-colors: #c8a96e, #b8b8b8, #d4a84b, #c0c0c0, #d4a84b, #c8a96e;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  min-height: 100vh;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+h1 { font-size: 22px; font-weight: 700; color: var(--accent); }
+.subtitle { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+#start-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 10px 28px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  width: fit-content;
+  transition: opacity 0.15s;
+}
+#start-btn:hover { opacity: 0.85; }
+#start-btn:disabled { opacity: 0.4; cursor: default; }
+
+#record-btn {
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); padding: 10px 20px; border-radius: 8px;
+  font-size: 14px; font-weight: 600; cursor: pointer; width: fit-content;
+}
+#record-btn:hover:not(:disabled) { border-color: var(--accent); }
+#record-btn:disabled { opacity: 0.4; cursor: default; }
+#record-btn.recording { background: var(--onset); color: #fff; border-color: var(--onset); }
+
+#instrument-select {
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); padding: 10px 14px; border-radius: 8px;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+}
+#instrument-select:hover { border-color: var(--accent); }
+
+.panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 700px) { .panels { grid-template-columns: 1fr; } }
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+}
+.panel h2 { font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 10px; }
+
+/* Oscilloscope */
+#osc-canvas { width: 100%; height: 90px; display: block; border-radius: 6px; background: #111115; }
+
+/* Spectrum */
+#spec-canvas { width: 100%; height: 90px; display: block; border-radius: 6px; background: #111115; }
+
+/* Onset */
+#onset-box {
+  height: 90px;
+  border-radius: 8px;
+  background: #111115;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--muted);
+  transition: background 0.08s, color 0.08s;
+}
+#onset-box.active { background: var(--onset); color: #fff; }
+
+/* Info row */
+.info-row {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.note-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+}
+.note-item {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+}
+.note-name {
+  font-weight: 700;
+  font-size: 18px;
+  width: 36px;
+  color: var(--accent2);
+}
+.note-freq { color: var(--muted); font-size: 12px; }
+
+.chord-display {
+  font-size: 56px;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+  min-width: 120px;
+}
+
+/* Fretboard */
+.tuning-label {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+  margin-left: 8px;
+}
+#fretboard-canvas {
+  width: 100%;
+  height: 140px;
+  display: block;
+  border-radius: 6px;
+  background: #111115;
+}
+
+/* Sliders */
+.sliders { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; }
+.slider-row { display: flex; flex-direction: column; gap: 4px; }
+.slider-row label { font-size: 12px; color: var(--muted); }
+.slider-row span { font-size: 12px; font-weight: 600; color: var(--text); }
+.slider-row input[type=range] { width: 100%; accent-color: var(--accent); }
+
+#status { font-size: 12px; color: var(--muted); }
+
+/* Latency bar */
+#latency-bar {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--muted);
+  padding: 8px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+#latency-bar span { color: var(--text); font-weight: 600; }
+#latency-bar .warn { color: #ffb347; }
+#latency-bar .ok   { color: var(--accent2); }
+
+/* Error log */
+#error-panel {
+  display: none;
+  background: #1a0808;
+  border: 1px solid #5a1a1a;
+  border-radius: 8px;
+  padding: 12px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+#error-panel h2 { font-size: 13px; font-weight: 600; color: #ff7070; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 8px; }
+.error-entry { font-size: 11px; color: #ff9090; font-family: monospace; line-height: 1.6; border-bottom: 1px solid #2a0a0a; padding-bottom: 4px; margin-bottom: 4px; }
+.error-entry .err-time { color: #804040; margin-right: 6px; }
+</style>
+
+</head>
+<body>
+
+<div>
+  <h1>RiffNet</h1>
+  <p class="subtitle">Live guitar &amp; bass note &amp; chord detection — powered by WebAssembly</p>
+</div>
+
+<div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+  <button id="start-btn">▶ Start Microphone</button>
+  <button id="record-btn" disabled>● Record 5s (debug WAV)</button>
+  <select id="instrument-select">
+    <option value="guitar" selected>Guitar</option>
+    <option value="bass">Bass</option>
+  </select>
+</div>
+<p id="status">Idle — click Start to begin.</p>
+
+<div id="latency-bar">
+  <div>WASM call (process_audio+poll) last: <span id="lat-last">—</span> ms</div>
+  <div>avg (100): <span id="lat-avg">—</span> ms</div>
+  <div>max: <span id="lat-max">—</span> ms</div>
+  <div>frames/s: <span id="lat-fps">—</span></div>
+  <div>sample rate: <span id="lat-sr">—</span> Hz</div>
+</div>
+
+<div id="error-panel">
+  <h2>⚠ Errors</h2>
+  <div id="error-log"></div>
+</div>
+
+<div class="panels">
+  <div class="panel">
+    <h2>Oscilloscope</h2>
+    <canvas id="osc-canvas" width="600" height="90"></canvas>
+  </div>
+  <div class="panel">
+    <h2>CQT Spectrum</h2>
+    <canvas id="spec-canvas" width="600" height="90"></canvas>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Fretboard <span id="tuning-label" class="tuning-label">— Standard —</span></h2>
+  <canvas id="fretboard-canvas" width="900" height="140"></canvas>
+</div>
+
+<div class="panels">
+  <div class="panel">
+    <h2>Onset Detector</h2>
+    <div id="onset-box">ONSET</div>
+  </div>
+  <div class="panel">
+    <h2>Detected Notes</h2>
+    <div class="info-row">
+      <div id="note-list" class="note-list"></div>
+      <div id="chord-display" class="chord-display">—</div>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>DSP Parameters</h2>
+  <div class="sliders">
+    <div class="slider-row">
+      <label>Pitch Threshold <span id="pt-val">0.50</span> <small style="color:var(--muted)">(model confidence to show a note)</small></label>
+      <input type="range" id="pt" min="0.2" max="0.9" step="0.01" value="0.50"/>
+    </div>
+    <div class="slider-row">
+      <label>Onset Threshold <span id="ot-val">0.60</span> <small style="color:var(--muted)">(confidence to fire a new onset)</small></label>
+      <input type="range" id="ot" min="0.2" max="0.9" step="0.01" value="0.60"/>
+    </div>
+    <div class="slider-row">
+      <label>Refractory <span id="refr-val">6</span> <small style="color:var(--muted)">(min frames between onsets)</small></label>
+      <input type="range" id="refr" min="1" max="20" step="1" value="6"/>
+    </div>
+    <div class="slider-row">
+      <label>Max Notes <span id="maxn-val">6</span> <small style="color:var(--muted)">(polyphony cap per frame)</small></label>
+      <input type="range" id="maxn" min="1" max="8" step="1" value="6"/>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import init, { RiffNetDetector, Instrument } from './pkg/riffnet.js?v=6';
+
+// RiffNetDetector runs entirely inside the wasm module, via a hand-rolled
+// streaming engine (burn-flex only loads the weights at construction).
+
+// ---- Constants ----
+const NOTE_NAMES  = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const NUM_FRETS   = 12;
+const STRING_COLOR_PALETTE = ['#c8a96e','#b8b8b8','#d4a84b','#c0c0c0','#d4a84b','#c8a96e'];
+
+// ---- Fretboard tuning presets, auto-detected from recent notes across the
+// MIDI 36-90 detection range (covers standard through downtuned guitar) ----
+// opens: MIDI note per string, low to high. Index 0 (Standard) is the
+// fallback/default when there isn't enough note history to decide yet.
+const GUITAR_TUNING_PRESETS = [
+  { name: 'Standard',    opens: [40, 45, 50, 55, 59, 64], names: ['E2','A2','D3','G3','B3','E4'] },
+  { name: 'Drop D',      opens: [38, 45, 50, 55, 59, 64], names: ['D2','A2','D3','G3','B3','E4'] },
+  { name: 'Eb Standard', opens: [39, 44, 49, 54, 58, 63], names: ['Eb2','Ab2','Db3','Gb3','Bb3','Eb4'] },
+  { name: 'D Standard',  opens: [38, 43, 48, 53, 57, 62], names: ['D2','G2','C3','F3','A3','D4'] },
+  { name: 'Drop C',      opens: [36, 43, 48, 53, 57, 62], names: ['C2','G2','C3','F3','A3','D4'] },
+];
+// Bass has its own (much lower) detection range, so it gets its own preset
+// list — a guitar preset's open strings would mostly fall outside what the
+// bass model can even represent.
+//
+// 5-string is listed second on purpose. Its open strings are a strict
+// superset of the 4-string's (same four, plus a low B), so scorePreset can
+// never rank it below Standard Bass — it ties until a note below E1 actually
+// shows up. Starting on Standard Bass and letting SWITCH_SCORE_MARGIN carry
+// the upgrade means a 4-string player never gets switched onto a 5-string
+// preset by a tie, while a 5-string player switches as soon as they touch
+// the B string.
+const BASS_TUNING_PRESETS = [
+  { name: 'Standard Bass',   opens: [28, 33, 38, 43],     names: ['E1','A1','D2','G2'] },
+  { name: '5-String (BEADG)', opens: [23, 28, 33, 38, 43], names: ['B0','E1','A1','D2','G2'] },
+];
+
+function activePresets() {
+  return currentInstrument === 'bass' ? BASS_TUNING_PRESETS : GUITAR_TUNING_PRESETS;
+}
+
+// Rolling history of recently detected notes, used to auto-pick a preset.
+// Hysteresis (MIN_NOTES_FOR_SWITCH + a score margin, below) avoids flickering
+// the whole fretboard layout on a single stray/misdetected note.
+const TUNING_HISTORY_MS = 4000;
+const MIN_NOTES_FOR_SWITCH = 5;
+const SWITCH_SCORE_MARGIN = 2;
+let tuningHistory = [];
+let currentPresetIdx = 0;
+let currentInstrument = 'guitar'; // 'guitar' | 'bass' — mirrors <select id="instrument-select">
+
+function scorePreset(opens, midis) {
+  let matched = 0;
+  for (const m of midis) {
+    for (let s = 0; s < opens.length; s++) {
+      const fret = m - opens[s];
+      if (fret >= 0 && fret <= NUM_FRETS) { matched++; break; }
+    }
+  }
+  return matched;
+}
+
+function updateTuningHistory(peaks, now) {
+  for (const p of peaks) tuningHistory.push({ midi: Math.round(p.midi_note), t: now });
+  tuningHistory = tuningHistory.filter(n => now - n.t <= TUNING_HISTORY_MS);
+}
+
+// Picks the tuning preset that best explains the recent note history. Only
+// switches away from the current preset when a challenger covers meaningfully
+// more of the recent notes — a fretboard that silently reshapes itself on
+// every ambiguous note would be more confusing than a slightly stale one.
+function pickPreset() {
+  const midis = tuningHistory.map(n => n.midi);
+  if (midis.length < MIN_NOTES_FOR_SWITCH) return currentPresetIdx;
+  const presets = activePresets();
+  const scores = presets.map(p => scorePreset(p.opens, midis));
+  const curScore = scores[currentPresetIdx];
+  let bestIdx = currentPresetIdx, bestScore = curScore;
+  for (let i = 0; i < presets.length; i++) {
+    if (scores[i] > bestScore) { bestScore = scores[i]; bestIdx = i; }
+  }
+  if (bestIdx !== currentPresetIdx && bestScore >= curScore + SWITCH_SCORE_MARGIN) {
+    return bestIdx;
+  }
+  return currentPresetIdx;
+}
+
+// ---- State ----
+let detector = null;
+let sampleRate = 44100;
+let lastResult = null;
+let onsetFlash = 0;
+let oscBuffer   = new Float32Array(512);
+let oscHead     = 0;
+let specData    = [];
+let specBinFreqs = [];
+
+// ---- Audio session lifecycle (so Stop can tear down and Start can swap models) ----
+let running = false;
+let renderActive = false;
+let audioCtx = null;
+let audioStream = null;
+let workletNode = null;
+
+// ---- Debug recording (raw mic -> WAV download) ----
+let recording = false;
+let recBuf = [];
+let recCount = 0;
+let recTarget = 0;
+const REC_SECONDS = 5;
+
+function encodeWAV(samples, sr) {
+  const buf = new ArrayBuffer(44 + samples.length * 2);
+  const v = new DataView(buf);
+  const ws = (off, s) => { for (let i = 0; i < s.length; i++) v.setUint8(off + i, s.charCodeAt(i)); };
+  ws(0, 'RIFF'); v.setUint32(4, 36 + samples.length * 2, true); ws(8, 'WAVE');
+  ws(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  ws(36, 'data'); v.setUint32(40, samples.length * 2, true);
+  let off = 44;
+  for (let i = 0; i < samples.length; i++) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    v.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    off += 2;
+  }
+  return new Blob([buf], { type: 'audio/wav' });
+}
+
+function finishRecording() {
+  recording = false;
+  const all = new Float32Array(recCount);
+  let off = 0;
+  for (const c of recBuf) { all.set(c, off); off += c.length; }
+  recBuf = [];
+  const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const blob = encodeWAV(all, sampleRate);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `riffnet-${ts}-${sampleRate}Hz.wav`;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+  const rb = document.getElementById('record-btn');
+  rb.classList.remove('recording');
+  rb.textContent = '✓ Saved WAV';
+  setTimeout(() => { rb.textContent = `● Record ${REC_SECONDS}s (debug WAV)`; }, 2000);
+}
+
+// ---- Instrument selector ----
+// Switching rebuilds the wasm detector for the new model (cheap — weights
+// are already embedded in the wasm binary) and resets fretboard state so a
+// guitar tuning history doesn't leak into a bass session or vice versa.
+document.getElementById('instrument-select').addEventListener('change', (e) => {
+  currentInstrument = e.target.value;
+  currentPresetIdx = 0;
+  tuningHistory = [];
+  lastTuningLabel = '';
+  if (detector) {
+    detector.instrument = currentInstrument === 'bass' ? Instrument.Bass : Instrument.Guitar;
+  }
+});
+
+document.getElementById('record-btn').addEventListener('click', () => {
+  if (recording || !detector) return;
+  recBuf = []; recCount = 0; recTarget = Math.round(sampleRate * REC_SECONDS);
+  recording = true;
+  const rb = document.getElementById('record-btn');
+  rb.classList.add('recording');
+  rb.textContent = '● Recording…';
+});
+
+// ---- Latency tracking ----
+const LAT_WINDOW = 100;
+const latHistory = [];
+let latMax = 0;
+let frameCount = 0;
+let frameCountT0 = performance.now();
+
+function pushLatency(ms) {
+  latHistory.push(ms);
+  if (latHistory.length > LAT_WINDOW) latHistory.shift();
+  if (ms > latMax) latMax = ms;
+  const avg = latHistory.reduce((a, b) => a + b, 0) / latHistory.length;
+  const lastEl = document.getElementById('lat-last');
+  const avgEl  = document.getElementById('lat-avg');
+  const maxEl  = document.getElementById('lat-max');
+  const fpsEl  = document.getElementById('lat-fps');
+  lastEl.textContent = ms.toFixed(2);
+  avgEl.textContent  = avg.toFixed(2);
+  maxEl.textContent  = latMax.toFixed(2);
+  // Colour-code: green < 5ms, amber < 15ms, red >= 15ms
+  const latEl = document.getElementById('latency-bar');
+  [lastEl, avgEl, maxEl].forEach(el => {
+    el.className = avg < 5 ? 'ok' : avg < 15 ? 'warn' : '';
+  });
+  // fps
+  frameCount++;
+  const now = performance.now();
+  if (now - frameCountT0 >= 1000) {
+    fpsEl.textContent = frameCount;
+    frameCount = 0;
+    frameCountT0 = now;
+  }
+}
+
+// ---- Error logging ----
+function logError(err, context) {
+  const panel = document.getElementById('error-panel');
+  const log   = document.getElementById('error-log');
+  panel.style.display = 'block';
+  const entry = document.createElement('div');
+  entry.className = 'error-entry';
+  const t = new Date().toISOString().slice(11, 23);
+  const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+  entry.innerHTML = `<span class="err-time">${t}</span>[${context}] ${msg}`;
+  log.appendChild(entry);
+  log.scrollTop = log.scrollHeight;
+  console.error(`[${context}]`, err);
+}
+
+// ---- Canvas references ----
+const oscCanvas  = document.getElementById('osc-canvas');
+const specCanvas = document.getElementById('spec-canvas');
+const fbCanvas   = document.getElementById('fretboard-canvas');
+const oscCtx     = oscCanvas.getContext('2d');
+const specCtx    = specCanvas.getContext('2d');
+const fbCtx      = fbCanvas.getContext('2d');
+
+// ---- Sliders ----
+function bindSlider(id, valId, cb) {
+  const el = document.getElementById(id);
+  const vl = document.getElementById(valId);
+  el.addEventListener('input', () => { vl.textContent = el.value; cb(parseFloat(el.value)); });
+}
+
+let decodeParams = { pt: 0.50, ot: 0.60, refr: 6, maxN: 6 };
+
+function applyParams() {
+  if (!detector) return;
+  detector.pitch_threshold = decodeParams.pt;
+  detector.max_notes = decodeParams.maxN;
+  detector.onset_threshold = decodeParams.ot;
+  detector.refractory = decodeParams.refr;
+}
+
+bindSlider('pt',   'pt-val',   v => { decodeParams.pt   = v;              applyParams(); });
+bindSlider('ot',   'ot-val',   v => { decodeParams.ot   = v;              applyParams(); });
+bindSlider('refr', 'refr-val', v => { decodeParams.refr = Math.round(v);  applyParams(); });
+bindSlider('maxn', 'maxn-val', v => { decodeParams.maxN = Math.round(v);  applyParams(); });
+
+// ---- MIDI helpers ----
+function midiToName(midi) {
+  const n = Math.round(midi);
+  const octave = Math.floor(n / 12) - 1;
+  return NOTE_NAMES[((n % 12) + 12) % 12] + octave;
+}
+
+// ---- Fretboard drawing ----
+// Returns { string, fret: 0-12 } for a given MIDI note under `opens`, or null
+function noteToFretboard(midi, opens) {
+  const midiR = Math.round(midi);
+  // Try each string from high to low — pick the lowest fret (most natural)
+  let best = null;
+  for (let s = opens.length - 1; s >= 0; s--) {
+    const fret = midiR - opens[s];
+    if (fret >= 0 && fret <= NUM_FRETS) {
+      if (!best || fret < best.fret) best = { string: s, fret };
+    }
+  }
+  return best;
+}
+
+let lastTuningLabel = '';
+
+function drawFretboard(activePeaks) {
+  const now = performance.now();
+  updateTuningHistory(activePeaks, now);
+  currentPresetIdx = pickPreset();
+  const preset = activePresets()[currentPresetIdx];
+  const numStrings = preset.opens.length;
+
+  if (preset.name !== lastTuningLabel) {
+    lastTuningLabel = preset.name;
+    document.getElementById('tuning-label').textContent = `— ${preset.name} —`;
+  }
+
+  const W = fbCanvas.width, H = fbCanvas.height;
+  fbCtx.clearRect(0, 0, W, H);
+
+  const MARGIN_LEFT  = 48;
+  const MARGIN_RIGHT = 20;
+  const MARGIN_TOP   = 16;
+  const MARGIN_BOT   = 16;
+  const boardW = W - MARGIN_LEFT - MARGIN_RIGHT;
+  const boardH = H - MARGIN_TOP  - MARGIN_BOT;
+
+  // Fret positions (0 = nut, 1..12 = frets)
+  // Use equal-temperament fret spacing
+  const fretX = (f) => {
+    if (f === 0) return MARGIN_LEFT;
+    // Proportional spacing: fret f position = boardW * (1 - 1/2^(f/12))
+    return MARGIN_LEFT + boardW * (1 - Math.pow(2, -f / 12));
+  };
+
+  // String Y positions (string 0 = lowest at bottom)
+  const stringY = (s) => MARGIN_TOP + boardH - (s / (numStrings - 1)) * boardH;
+
+  // Background
+  fbCtx.fillStyle = '#111115';
+  fbCtx.fillRect(0, 0, W, H);
+
+  // Fretboard wood
+  fbCtx.fillStyle = '#1e1408';
+  fbCtx.fillRect(MARGIN_LEFT, MARGIN_TOP, boardW, boardH);
+
+  // Fret wires
+  for (let f = 0; f <= NUM_FRETS; f++) {
+    const x = fretX(f);
+    fbCtx.strokeStyle = f === 0 ? '#d4c080' : '#4a4a50';
+    fbCtx.lineWidth   = f === 0 ? 3 : 1;
+    fbCtx.beginPath();
+    fbCtx.moveTo(x, MARGIN_TOP);
+    fbCtx.lineTo(x, MARGIN_TOP + boardH);
+    fbCtx.stroke();
+  }
+
+  // Fret markers (dots at 3, 5, 7, 9, 12)
+  for (const f of [3, 5, 7, 9, 12]) {
+    const x = (fretX(f - 1) + fretX(f)) / 2;
+    const y = MARGIN_TOP + boardH / 2;
+    fbCtx.fillStyle = '#2a2010';
+    fbCtx.beginPath();
+    fbCtx.arc(x, y, 6, 0, Math.PI * 2);
+    fbCtx.fill();
+    // Fret number below
+    fbCtx.fillStyle = '#555560';
+    fbCtx.font = '10px Inter,sans-serif';
+    fbCtx.textAlign = 'center';
+    fbCtx.fillText(f, x, MARGIN_TOP + boardH + 13);
+  }
+
+  // Strings
+  for (let s = 0; s < numStrings; s++) {
+    const y = stringY(s);
+    const thickness = 1 + (numStrings - 1 - s) * 0.4; // lowest string thicker
+    fbCtx.strokeStyle = STRING_COLOR_PALETTE[s % STRING_COLOR_PALETTE.length];
+    fbCtx.lineWidth = thickness;
+    fbCtx.beginPath();
+    fbCtx.moveTo(MARGIN_LEFT, y);
+    fbCtx.lineTo(MARGIN_LEFT + boardW, y);
+    fbCtx.stroke();
+
+    // Open string label
+    fbCtx.fillStyle = '#6b6b80';
+    fbCtx.font = '10px Inter,sans-serif';
+    fbCtx.textAlign = 'right';
+    fbCtx.fillText(preset.names[s], MARGIN_LEFT - 4, y + 4);
+  }
+
+  // Active note markers
+  for (let i = 0; i < activePeaks.length; i++) {
+    const peak = activePeaks[i];
+    const pos  = noteToFretboard(peak.midi_note, preset.opens);
+    if (!pos) continue;
+
+    const y  = stringY(pos.string);
+    let x;
+    if (pos.fret === 0) {
+      x = MARGIN_LEFT - 12; // open string: dot left of nut
+    } else {
+      x = (fretX(pos.fret - 1) + fretX(pos.fret)) / 2;
+    }
+
+    // Color by amplitude rank
+    const alpha = 1.0 - i * 0.15;
+    fbCtx.fillStyle = i === 0 ? `rgba(0,212,180,${alpha})` : `rgba(124,92,252,${alpha})`;
+    fbCtx.strokeStyle = '#fff';
+    fbCtx.lineWidth = 1.5;
+    fbCtx.beginPath();
+    fbCtx.arc(x, y, 9, 0, Math.PI * 2);
+    fbCtx.fill();
+    fbCtx.stroke();
+
+    // Note name inside dot
+    fbCtx.fillStyle = '#000';
+    fbCtx.font = 'bold 8px Inter,sans-serif';
+    fbCtx.textAlign = 'center';
+    fbCtx.fillText(midiToName(peak.midi_note), x, y + 3);
+  }
+}
+
+// ---- Oscilloscope drawing ----
+function drawOscilloscope(samples) {
+  const W = oscCanvas.width, H = oscCanvas.height;
+  oscCtx.fillStyle = '#111115';
+  oscCtx.fillRect(0, 0, W, H);
+  oscCtx.strokeStyle = '#00d4b4';
+  oscCtx.lineWidth = 1.5;
+  oscCtx.beginPath();
+  const step = W / samples.length;
+  for (let i = 0; i < samples.length; i++) {
+    const x = i * step;
+    const y = H / 2 - samples[i] * (H / 2 - 2);
+    i === 0 ? oscCtx.moveTo(x, y) : oscCtx.lineTo(x, y);
+  }
+  oscCtx.stroke();
+}
+
+// ---- Spectrum drawing ----
+// Not a real CQT spectrum display -- there's no bin-level magnitude available
+// here, only the decoder's discrete note peaks. We track a smoothed amplitude
+// per recently-detected MIDI note and draw those as bars positioned by pitch.
+let smoothPeaks = [];
+
+function drawSpectrum(peaks) {
+  const W = specCanvas.width, H = specCanvas.height;
+  specCtx.fillStyle = '#111115';
+  specCtx.fillRect(0, 0, W, H);
+
+  // Decay smoothed peaks
+  for (let i = 0; i < smoothPeaks.length; i++) {
+    smoothPeaks[i].amp *= 0.85;
+  }
+
+  // Update / add peaks
+  for (const p of peaks) {
+    const existing = smoothPeaks.find(sp => Math.abs(sp.midi - p.midi_note) < 0.5);
+    if (existing) {
+      existing.amp = Math.max(existing.amp, p.amplitude);
+    } else {
+      smoothPeaks.push({ midi: p.midi_note, freq: p.frequency, amp: p.amplitude });
+    }
+  }
+  // Prune dead peaks
+  smoothPeaks = smoothPeaks.filter(sp => sp.amp > 0.01);
+
+  // Draw-axis bounds, one semitone past each end of the real detection range
+  // (guitar MIDI 36-90, bass MIDI 28-65) as edge padding so peaks at the
+  // extremes aren't drawn flush against the canvas border.
+  const MIDI_MIN = currentInstrument === 'bass' ? 28 : 36;
+  const MIDI_MAX = currentInstrument === 'bass' ? 66 : 91;
+  const midiToX = (m) => ((m - MIDI_MIN) / (MIDI_MAX - MIDI_MIN)) * W;
+
+  // Draw octave separators
+  for (let oct = 1; oct <= 7; oct++) {
+    const midiC = (oct + 1) * 12; // C2=36, C3=48...
+    if (midiC >= MIDI_MIN && midiC <= MIDI_MAX) {
+      const x = midiToX(midiC);
+      specCtx.strokeStyle = '#2a2a32';
+      specCtx.lineWidth = 1;
+      specCtx.beginPath();
+      specCtx.moveTo(x, 0);
+      specCtx.lineTo(x, H);
+      specCtx.stroke();
+      specCtx.fillStyle = '#3a3a48';
+      specCtx.font = '9px Inter,sans-serif';
+      specCtx.textAlign = 'left';
+      specCtx.fillText('C' + oct, x + 2, H - 2);
+    }
+  }
+
+  // Draw bars for each smoothed peak
+  for (const sp of smoothPeaks) {
+    const x = midiToX(sp.midi);
+    const barH = Math.max(2, sp.amp * (H - 4));
+    const isTop = peaks.find(p => Math.abs(p.midi_note - sp.midi) < 0.5);
+    specCtx.fillStyle = isTop ? '#00d4b4' : '#7c5cfc';
+    specCtx.fillRect(x - 2, H - barH, 4, barH);
+  }
+}
+
+// ---- Stable note-list renderer (avoids innerHTML thrash → flicker) ----
+// Only rewrites DOM nodes when the displayed note names actually change.
+let lastNoteKey = '';
+function updateNoteList(peaks) {
+  const top = peaks.slice(0, 5);
+  const key = top.map(p => midiToName(p.midi_note) + p.frequency.toFixed(0)).join(',');
+  if (key === lastNoteKey) return; // nothing changed — skip DOM write
+  lastNoteKey = key;
+
+  const nl = document.getElementById('note-list');
+  // Reuse existing child nodes where possible
+  while (nl.children.length > top.length) nl.removeChild(nl.lastChild);
+  top.forEach((p, i) => {
+    let row = nl.children[i];
+    if (!row) {
+      row = document.createElement('div');
+      row.className = 'note-item';
+      row.innerHTML = '<span class="note-name"></span><span class="note-freq"></span>';
+      nl.appendChild(row);
+    }
+    row.children[0].textContent = midiToName(p.midi_note);
+    row.children[1].textContent = p.frequency.toFixed(1) + ' Hz';
+  });
+}
+
+let lastChord = '';
+
+// ---- Main render loop ----
+function render() {
+  if (!renderActive) return; // Stop pressed — let the rAF chain end
+  requestAnimationFrame(render);
+
+  // Draw oscilloscope from circular buffer
+  const osc = new Float32Array(oscBuffer.length);
+  for (let i = 0; i < oscBuffer.length; i++) {
+    osc[i] = oscBuffer[(oscHead + i) % oscBuffer.length];
+  }
+  drawOscilloscope(osc);
+
+  if (!lastResult) {
+    drawFretboard([]);
+    drawSpectrum([]);
+    return;
+  }
+
+  const peaks = lastResult.peaks || [];
+
+  // Onset flash: onsetFlash is set from res.onset in the worklet message
+  // handler, not read from lastResult here.
+  const onsetBox = document.getElementById('onset-box');
+  if (onsetFlash > 0) {
+    onsetFlash--;
+    onsetBox.classList.add('active');
+  } else {
+    onsetBox.classList.remove('active');
+  }
+
+  // Note list — only updates DOM when content changes
+  updateNoteList(peaks);
+
+  // Chord — only updates when it changes
+  const chord = lastResult.chord_name || '—';
+  if (chord !== lastChord) {
+    lastChord = chord;
+    document.getElementById('chord-display').textContent = chord;
+  }
+
+  drawSpectrum(peaks);
+  drawFretboard(peaks.slice(0, 6));
+}
+
+// ---- Reset all display state (called on Stop, and before a fresh Start) ----
+function resetDisplay() {
+  lastResult = null;
+  onsetFlash = 0;
+  lastNoteKey = '';
+  lastChord = '';
+  smoothPeaks = [];
+  oscBuffer.fill(0);
+  tuningHistory = [];
+  currentPresetIdx = 0;
+  lastTuningLabel = '';
+  document.getElementById('onset-box').classList.remove('active');
+  document.getElementById('note-list').innerHTML = '';
+  document.getElementById('chord-display').textContent = '—';
+  drawOscilloscope(oscBuffer);
+  drawFretboard([]);
+  drawSpectrum([]);
+  ['lat-last', 'lat-avg', 'lat-max', 'lat-fps', 'lat-sr'].forEach(id => {
+    document.getElementById(id).textContent = '—';
+  });
+  latHistory.length = 0;
+  latMax = 0;
+}
+
+// ---- Global error catchers (catches silent mobile promise rejections) ----
+window.addEventListener('unhandledrejection', (e) => {
+  logError(e.reason || e, 'unhandledrejection');
+});
+window.addEventListener('error', (e) => {
+  logError(e.error || e.message, 'window.onerror');
+});
+
+// ---- Start / Stop ----
+// A single button toggles between the two. Stopping tears down the mic
+// stream, worklet, and AudioContext, and clears `detector` so the next Start
+// builds a fresh one.
+async function stopDetector() {
+  const btn = document.getElementById('start-btn');
+  const status = document.getElementById('status');
+
+  renderActive = false;
+  if (workletNode) {
+    workletNode.port.onmessage = null;
+    workletNode.disconnect();
+    workletNode = null;
+  }
+  if (audioStream) {
+    audioStream.getTracks().forEach(t => t.stop());
+    audioStream = null;
+  }
+  if (audioCtx) {
+    try { await audioCtx.close(); } catch (_) { /* already closed */ }
+    audioCtx = null;
+  }
+  if (recording) {
+    recording = false;
+    recBuf = [];
+    document.getElementById('record-btn').classList.remove('recording');
+  }
+
+  detector = null;
+  running = false;
+  resetDisplay();
+
+  document.getElementById('record-btn').disabled = true;
+  btn.disabled = false;
+  btn.textContent = '▶ Start Microphone';
+  btn.style.background = '';
+  status.textContent = 'Stopped — click Start to resume.';
+}
+
+async function startDetector() {
+  const btn = document.getElementById('start-btn');
+  const status = document.getElementById('status');
+  btn.disabled = true;
+  status.textContent = 'Loading WASM…';
+
+  // IMPORTANT: AudioContext must be created synchronously inside the click
+  // handler before any await — iOS Safari loses the user-gesture token after
+  // the first await and will silently block audio creation.
+  const ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+  audioCtx = ctx;
+
+  try {
+    await init();
+
+    // iOS Safari starts AudioContext in 'suspended' state; resume it now
+    // (we are still within the user-gesture window at this point).
+    if (ctx.state === 'suspended') await ctx.resume();
+
+    sampleRate = ctx.sampleRate;
+    status.textContent = `AudioContext OK (${sampleRate} Hz) — requesting mic…`;
+
+    // Use lenient constraints: strict booleans (false) can throw
+    // OverconstrainedError on some mobile browsers.
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          channelCount: { ideal: 1 },
+          sampleRate:   { ideal: 44100 },
+          echoCancellation:   false,
+          noiseSuppression:   false,
+          autoGainControl:    false,
+        }
+      });
+    } catch (_) {
+      // Fall back to minimal constraints if the strict ones were rejected
+      status.textContent = 'Retrying mic with default constraints…';
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    }
+    audioStream = stream;
+
+    status.textContent = 'Mic OK — loading worklet…';
+
+    detector = new RiffNetDetector(sampleRate);
+    detector.instrument = currentInstrument === 'bass' ? Instrument.Bass : Instrument.Guitar;
+    applyParams();
+
+    await ctx.audioWorklet.addModule('./worklet.js');
+    workletNode = new AudioWorkletNode(ctx, 'mic-processor');
+    const source = ctx.createMediaStreamSource(stream);
+    source.connect(workletNode);
+    // Deliberately do NOT connect workletNode to ctx.destination to avoid feedback
+
+    workletNode.port.onmessage = async (e) => {
+      try {
+        const samples = e.data; // Float32Array, 128 samples
+
+        // Debug recording: capture pristine raw mic samples (device sample rate)
+        if (recording) {
+          recBuf.push(samples.slice());
+          recCount += samples.length;
+          if (recCount >= recTarget) finishRecording();
+        }
+
+        // Update oscilloscope circular buffer
+        for (let i = 0; i < samples.length; i++) {
+          oscBuffer[oscHead] = samples[i];
+          oscHead = (oscHead + 1) % oscBuffer.length;
+        }
+
+        // process_audio() then poll() for {onset, notes, chord_name}.
+        // RiffNetDetector returns null when no 256-sample hop landed in this
+        // 128-sample block (roughly every other call) — keep the previous
+        // display state then; a non-null result with empty notes is a real
+        // per-hop "nothing playing" verdict and should blank the display.
+        {
+          const t0 = performance.now();
+          detector.process_audio(samples);
+          const res = detector.poll();
+          const ms = performance.now() - t0;
+          pushLatency(ms);
+
+          if (res) {
+            if (res.onset) onsetFlash = 8;
+            lastResult = { peaks: res.notes || [], chord_name: res.chord_name };
+          }
+        }
+      } catch (err) {
+        logError(err, 'process_samples');
+      }
+    };
+
+    status.textContent = `Running (RiffNet) — ${sampleRate} Hz, 128-sample frames (~${(128 / sampleRate * 1000).toFixed(1)} ms)`;
+    btn.disabled = false;
+    btn.textContent = '■ Stop';
+    btn.style.background = '#2a7a5c';
+    document.getElementById('lat-sr').textContent = sampleRate;
+    document.getElementById('record-btn').disabled = false;
+
+    running = true;
+    renderActive = true;
+    requestAnimationFrame(render);
+
+  } catch (err) {
+    logError(err, 'startup');
+    status.textContent = '⚠ ' + (err.message || String(err));
+    btn.disabled = false;
+    btn.textContent = '▶ Start Microphone';
+    detector = null; // allow a retry to reset UI defaults
+    audioStream?.getTracks().forEach(t => t.stop());
+    audioStream = null;
+    await ctx.close();
+    audioCtx = null;
+  }
+}
+
+document.getElementById('start-btn').addEventListener('click', () => {
+  if (running) {
+    stopDetector();
+  } else {
+    startDetector();
+  }
+});
+</script>
+</body>
+</html>
